@@ -1,0 +1,13 @@
+0.环境准备 安装R和Rstudio及批量安装新包
+# 计算原项目中，R包被引用次数
+package_counts <- sapply(installed.packages()[, "Package"], function(x) sum(!is.na(match(as.character(gsub(".*:","",search())), x))))
+# 列出自己常用的n个包
+pkg <- head(sort(package_counts, decreasing = TRUE), n)
+# 在另一电脑中，批量安装自己常用的包
+ipak <- function(pkg){
+    new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+    if (length(new.pkg)) 
+        install.packages(new.pkg, dependencies = TRUE)
+    sapply(pkg, require, character.only = TRUE)
+}
+1.
