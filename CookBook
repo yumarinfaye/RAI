@@ -10,4 +10,11 @@ ipak <- function(pkg){
         install.packages(new.pkg, dependencies = TRUE)
     sapply(pkg, require, character.only = TRUE)
 }
-1.
+1.R中包里的数据集管理
+a.基本包 datasets含有 100 多个数据集（R version 4.2.0），涉及医学、自然、社会学等各个领域。
+pkg = data(package = "datasets")
+as_tibble(pkg$results[, c('Item', 'Title')])
+b.其他包中也有数据集，library该包后，可直接用数据集名称调用数据；或者不library，直接用过data()函数调用
+data(package = "package_name")，查看 R 包里有哪些数据集
+data(dataset_name)，加载数据集
+?dataset_name，查看数据集的帮助文档
