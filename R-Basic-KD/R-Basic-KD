@@ -1,1 +1,1162 @@
+---
+title: "Multiply_function"
+author: "Faye"
+date: "2018年12月1日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# 0.环境准备 安装R和Rstudio及批量安装新包
+
+# 计算原项目中，R包被引用次数
+package_counts <- sapply(installed.packages()[, "Package"], function(x) sum(!is.na(match(as.character(gsub(".*:","",search())), x))))
+# 列出自己常用的n个包
+pkg <- head(sort(package_counts, decreasing = TRUE), n)
+# 在另一电脑中，批量安装自己常用的包
+ipak <- function(pkg){
+    new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+    if (length(new.pkg)) 
+        install.packages(new.pkg, dependencies = TRUE)
+    sapply(pkg, require, character.only = TRUE)
+}
+#或者用这个方法 手动批量安装
+wants <- c("knitr","rmarkdown","devtools","epicalc","mosaic",
+"showtext","pander","PerformanceAnalytics","fitdistrplus",
+"CircStats","MASS","mixtools","boot","TrialSize","vcd",
+"ggplot2","pspearman","gvlma","car","lmtest","leaps",
+"plyr","bootstrap","elrm","rms","Deducer","bestglm",
+"survival","robust","mlogit","nnet","VGAM","ordinal",
+"Sample.Size","phia","mvtnorm","pscl","mosaic","XML",
+"pipeR","Rcmdr","rgl","HH","DescTools","multcomp",
+"effects","sandwich","qcc","devtools","ggmap","mosaic",
+"Hmisc","pastecs","psych","doBy","gmodels","CircStats",
+"expm","koRpus","ldbounds","ggm","coin","DescTools",
+"Rcurl","maptools","rgdal","animation","leaflet",
+"polycor","pROC","rms","pgirmess","rateratio.test",
+"exactci","Deducer","VGAM","ordinal","AER","gplots","reshape2","ComplexHeatmap",
+"AICcmodavg")
+has <- wants %in% rownames(installed.packages())
+if(any(!has)) install.packages(wants[!has])
+
+```
+
+```{r common function}
+# typeof() (是什么), length() (有多少元素)和attributes() (有哪些注释数据)。最常用到的attributes就应该是names()，也就是每个元素的名字
+#向量
+
+# 当不同类型的数据使用c()函数创建atomic vector时，因为atomic vector的元素都必须是同质的，所以系统会依照character, double, integer, logical的顺序对数据类型进行转换。例如：
+c(9, "a", 1.5, FALSE) ##全部转换为character
+c(9, 1.5, FALSE) ##全部转换为double
+c(FALSE, 9) ##全部转换为integer
+a<-c("Happy","Panathenaic","Festival","a","b")
+b<-c(letters[1:10],)
+length(a)
+intersect(a,b)
+setdiff(a,b)
+match(a,b)# b 不可重复,若b重复，则只查找第一个匹配的,,会出现查找不全的可能
+unique("Soft_Tissue_Sarcoma","Soft_tissue_Sarcoma")#不区分大小写
+merge()#是默认是大小写严格匹配的
+#data.frame
+#import
+get(as.character(a)) #将字符型转换为变量名！ 在for循环中常用到
+
+# R中包里的数据集管理
+# a.基本包 datasets含有 100 多个数据集（R version 4.2.0），涉及医学、自然、社会学等各个领域。
+pkg = data(package = "datasets")
+as_tibble(pkg$results[, c('Item', 'Title')])
+# b.其他包中也有数据集，library该包后，可直接用数据集名称调用数据；或者不library，直接用过data()函数调用
+# data(package = "package_name")，查看 R 包里有哪些数据集
+# data(dataset_name)，加载数据集
+# ?dataset_name，查看数据集的帮助文档
+
+```
+
+#1. R自带函数
+向量#一维，数据类型一致
+数组#二维及以上，数据类型一致，长度可不一致 array(c,dim.dimnames)可循环填充，dim()不可循环填充，dimname()对应list，不可用于向量
+矩阵#二维，特殊的数组 matrix(c,nr,nc,byrow=F)默认按列填充，可循环填充，对角矩阵用diag()建立。rownames(),colnames()
+diag(3);diag(3:5);diag(4,6,8);diag(3,5);diag(5,5,5)  ps byrow 对array和diag无效
+数据框#数据类型可不一致，但每个维度长度一致
+列表#数据类型和每个维度长度都可不一致，最宽泛的概念
+##1.1see object
+```{r #see object}
+#nchar(c("I am a girl, loving swiming","Do you?"))#向量中每个元素的字符串长度
+length(c("I am a girl, loving swiming","Do you?"))#显示对象中元素或是成分的数量
+#dim()#显示对象的维度
+#str()#显示对象的结构
+#class()#显示对象类型或类
+#mode()#显示对象的模式
+#names()#显示对象成分的名称
+#summary()# 显示对象统计概要
+#table()#汇总频次(唯一，包括因子数据)
+#fix()#edit()
+#file.choose()#打开win文件选择框
+#head()#tail()
+#c(object,object)#将对象合并入一个向量
+#ls()
+#ls.str()
+#print(data(package='packagename'))#查看包的数据集
+#save(x,file="input.RData") #保存
+#save.image(file="input.RData")
+#load(file="input.RData")
+#attach(file="input.RData")
+# source()#
+#rm(list=ls())
+# path <- "test"
+# dir.create(path) ## 创建一个目录
+# setwd(path) ## 变更工作目录
+# setwd("..") ## 变更目录至上一级
+# unlink(path, recursive=TRUE) ## 删除目录
+# dir() ##查看当前目录
+# #install.packages("BiocManager", repos="https://cloud.r-project.org")
+# #library(BiocManager) #加载而去下载bioconduct上的软件包
+# # install("packagename")
+# #提问的要求是使用最简单的语言描述让他人可以重现你遇到的问题。并随邮件附附上当前的sessionInfo()
+sessionInfo()
+# vignette("packagename") #获取bioconduct的包
+# biocinstallRepos()#查看当前软件包的安装源
+#install.packages("packagename")#一般包安装
+#source("https://bioconductor.org/biocLite.R")
+#BiocManager::install("biopackage") #安装  bioconductor.org上的一些包
+
+source("script1.R")#输入脚本，屏幕输出
+sink("myoutput",append=TRUE,split=TRUE)#输出文本，结果将输出追加到已存在文件之后而不覆盖源文件
+pdf("filename.pdf")#输出pdf文件
+source("script1.R")# 输入脚本，结果出现在屏幕上
+sink()
+dev.off()
+source("script1.R")#结果显示在屏幕上，无文本和图形输出
+(.packages())#查看当前加载的包
+library("packagename")#加载包
+detach("package:packagename")#关闭包
+
+# 一般的，如果是csv文件，它的分隔符是逗号，字符串的两边会加上引号，可以直接使用read.csv("文件名")的方式读入数据。如果是tab分隔的tsv文件，可以直接使用read.delim("文件名")的方式读入数据。
+# read.delim(tftsv, header=F, nrows=4, skip=3) #有时候我们需要读取文件中间的几行，那么可以在上面的函数当中加入skip及nrows参数
+library(readxl)#导入excel数据
+data <- read_excel("filename.xlsx", 
+    sheet = "Sheet name", col_names = T)   
+library(readr)# 用base包导入excel
+data <- read_delim("filename.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE) 
+library(foregin) # can import Minitab,S,SAS,SPSS,Stata,Systat,dBase data
+read.csv(file = file, header = header, sep = sep, quote = quote)
+## 保存当前对话中所有的数据
+# save(list=ls(all=TRUE), file="all.RData") ##有一个快捷函数为save.image()
+# rm(list=ls()) ##删除对话中所有的对象
+# ls()
+# ## 读取之前保存的数据
+# load("all.RData")
+# ls()
+# unlink("all.RData") ## 删除刚写入的文件
+# ## 保存当前对话中的mat1，使用最大的压缩比
+# save("mat1", file="mat1.rda", compress="bzip2", compression_level=9)
+# file.info("mat1.rda")$size ##文件的大小
+# object.size(mat1) ## mat1 在内存中的大小
+
+## 查看可用的数据
+#data()
+## 调用mtcars数据
+# data(mtcars)
+# head(mtcars)
+#从数据库读取数据 相同的R代码可以用于同一种接口的不同类型的数据库
+library(RMySQL) #提供了到MySQL数据库的接口
+library(RODBC)#支持 all ODBC接口的数据库
+
+```
+R的数据库操作主要有以下几个包：RODBC, RMySQL, ROracle, RJDBC, RSQLite, DBI。这里只介绍DBI，因为通过使用不同的驱动，DBI就可以轻松地访问ODBC, JDBC, MySQL, Oracle and SQLite数据库。DBI被广泛地应用于Bioconductor的注释文件操作。使用DBI获取数据分为四步：建立联接，发送查寻语句，读取数据，关闭联接。数据库写入只是查寻语句不同，并且不需要再用fetch读取数据而已。
+
+
+##*1.2 computing basic statistics
+```{r}
+#mean(x),median(x),sd(x),var(x),cor(x,y),cov(x,y)#ps:na.rm=TRUE,correlation and covariance
+#abs(x)#绝对值
+w<-c(2,5,8,10)
+sqrt(25)#平方根，返回5，等价于25^(0.5)
+ceiling(3.14)#不小于3.14的最小整数，返回4
+floor(3.5)#不大于x的最大整数，返回3
+trunc(3.5)#返回3，向0的方向截取x中整数部分
+round(3.45,digits = 1)#四舍五入为指定的小数位
+signif(3.45,digits = 2)#四舍五入为指定的有效数字位数
+format(c(6.02341, 13.12345), digits = 4, nsmall = 2)#满足有效数字的同时也需要兼顾小数点位数保持一致
+format(2^31-1, scientific = TRUE)#
+log(3,10)#log(x,base=n)对x取以n为底的对数，log(x)为自然对数，log10(x)为常用对数
+exp(3)#e指数函数，exp(x)
+log10(w)
+sin(w)
+quantile(c(1:10),0.5) #50%分位数
+#dplyr::cumsum(w)#累积sum
+#comparing vectors
+5==5
+5!=5
+5>3
+5>=5
+5<3
+5<=5
+#creating sequences
+seq(from=1,to=10,by=3)#根据间隔长度 分
+seq(from=0,to=100,length.out = 5) #根据分割段数 分
+rep(2,times=5)
+rep(c(2,3),each=3)
+rep(c(2,3),3)
+sample(1:10,5,replace = T)
+```
+##1.3 数据转置，整合
+
+```{r 二维转置}
+#t() #矩阵或数据框
+mx<-matrix(1:20,ncol=3,nrow=7,byrow = F)
+mx
+t(mx)
+dt<-data.frame(sample(1:10,5),2,3)
+dt
+t(dt)
+#aperm()#array dim 转化
+# transform() 创建新变量
+mydata<-data.frame(x1=c(2,2,6,4),
+                   x2=c(3,4,2,8))
+mydata<-transform(mydata,
+          sumx=x1+x2,
+          meanx=(x1+x2)/2)
+```
+```{r 整合}
+#aggregate(x,by,FUN),x数据对象，by变量名组成的list(x$bv1,x$bv2)即使只有一个变量也要组成list形式,FUN 用来计算统计量的标量函数，如sum，mean, 不可以是输出结果为text的函数，如paste()等,na.rm=TRUE determined the NA if included
+#有NA 的例子
+agdt<-data.frame(v1=c(1:6,NA,8,9,10),
+                 v2=c(sample(1:20,10)),
+                 by1=c("red","blue",1,2,NA,"big",1,2,"red",99),
+                 by2=c("wet","dry",99,95,NA,"damp",99,95,NA,NA))
+agdt
+aggregate(x=agdt,by=list(agdt$by1,agdt$by2),FUN=mean)#自动忽略list中变量带NA的行，而参与FUN的变量计算结果为NA
+##if NA as a group
+fby1<-factor(agdt$by1,exclude = "")
+fby2<-factor(agdt$by2,exclude = "")
+aggregate(x=agdt,by=list(fby1,fby2),FUN=mean)#list中带NA的行会参与计算
+#Formulates，1~1,1~多，多~1，多~多;~前是待统计的变量，后是分组依据变量
+View(chickwts)
+aggregate(cbind(v1,v2)~by1+by2,agdt,mean)
+aggregate(weight~feed,data=chickwts,mean)
+aggregate(breaks~wool+tension,data=warpbreaks,mean)
+aggregate(cbind(Ozone,Temp)~Month,data=airquality,mean)
+aggregate(cbind(ncases,ncontrols)~alcgp+tobgp,data=esoph,sum)
+#Dot notation；.表示除此之外其他变量
+head(iris)
+aggregate(.~Species,data=iris,mean)
+head(ToothGrowth)
+aggregate(len~.,data=ToothGrowth,mean)
+#text
+paste(agdt$v1,agdt$v2,agdt$by1,agdt$by2,sep = ";",collapse = ":")#按行整合，所以要与分组函数联合使用，再整合
+p1<-paste(agdt$v1,agdt$v2,sep=",")
+p2<-paste(agdt$by1,agdt$by2,sep=",")
+paste(p1,p2,sep = ";")
+#函数table（求因子出现的频数）
+#table(..., exclude =) 其中参数exclude表示哪些因子不计算。
+tabdf <- factor(rep(c("A","B","C"), 10), levels=c("A","B","C","D","E"))
+tabd<-c(rep(c("A","B","C"), 10))
+tabd
+table(tabdf, exclude=c("B","C"))#！！！！
+
+```
+
+```{r apply族}
+#http://blog.fens.me/r-apply/
+#base::apply             Apply Functions Over Array Margins
+#base::by                Apply a Function to a Data Frame Split by Factors
+#base::eapply            Apply a Function Over Values in an Environment
+#base::lapply            Apply a Function over a List or Vector
+#base::mapply            Apply a Function to Multiple List or Vector Arguments
+#base::rapply            Recursively Apply a Function to a List
+#base::tapply            Apply a Function Over a Ragged Array
+#1 apply
+# create a matrix of 10 rows x 2 columns
+apm <- matrix(c(1:10, 11:20), nrow = 10, ncol = 2,dimnames = list(paste0("rn",1:10),c("cn1","cn2")))
+apx<-array(c(1:18),dim=c(2,3,3,2),dimnames = list(paste0("da",1:2),paste0("db",1:3),paste0("dc",1:3),paste0("dd",1:2)))
+# mean of the rows
+apply(apm, 1, mean)
+#apply(apx, 2, mean)
+# mean of the columns
+apply(apm, 2, mean)#1按行，2 按列
+# divide all values by 2 or 4
+apply(apm, 1:2, function(x) {x/2})#matrix
+apply(apx, 1:4, mean)#array#以上两种情况matrix和array参数margin选取全部的维度时，可以使原来的数据结构不变，但值可以根据function变化
+apply(apm,1:2,function(x){paste0(x,"my")})#所有元素全部变化，且数据结构不变
+apply(apx,1:4,function(x){paste(x,"your",sep="_")})
+class(apply(apx, 1:4, mean))
+class(apply(apm, 1:2, function(x) x/2)) 
+apz <- matrix(1:6, nrow = 3,dimnames = list(paste0("rn",1:3),c(paste0("cn",1:2))))
+apz
+ f <- function(x) {
+        c(x+1,x+2,x+3,x+4)
+}
+ apply(apz,1,f)  #f函数得到两个元素，则为几行，竖着来的，一列是apz一行f运行的结果，
+  apply(apz,2,f) 
+ apply(apz,1:2,f)#返回array，
+class(apply(apz,1:2,f))#array
+apy<-data.frame(x1=c(1:5),x2=c(1:10))
+apo<-data.frame(x1=c(1:5),x2=c("I","am","really","like","you"))#对于字符运算不可，可能是不可用于不同类型数据的原因
+fun1<-function(x,c1,c2){c(sum(x[c1],1),paste0(x[c2],"&"))}
+class(apply(apy,1,fun1,c1="x1",c2="x2"))#10列取决于margin的元素个数，2行取决于fun1函数得到的值有两个元素，结果竖着添加，好像添加观测值的感觉
+#心得，apply可 用于 for 循环替代运算，并且据了解，用R中的apply() 族函数运算，比for循环速度快。
+#有趣的例子
+appx <- cbind(x1 = 3, x2 = c(4:1, 2:5)); x
+myFUN<- function(x, c1, c2) {
+  c(sum(x[c1],1), mean(x[c2])) 
+ }
+apply(appx,1,myFUN,c1='x1',c2=c('x1','x2'))
+#等效于for循环，以下代码
+# 定义一个结果的数据框
+ df<-data.frame()
+# 定义for循环
+ for(i in 1:nrow(x)){
+   row<-x[i,]                                         # 每行的值
+   df<-rbind(df,rbind(c(sum(row[1],1), mean(row))))   # 计算，并赋值到结果数据框
+ }
+#以上如果用R向量方法，还有更简单的，如下
+ data.frame(x1=x[,1]+1,x2=rowMeans(x))
+
+#2 by() 
+#“Function ‘by’ is an object-oriented wrapper for ‘tapply’ applied to data frames.” a data frame is split by row into data frames subsetted by the values of one or more factors, and function ‘FUN’ is applied to each subset in turn.
+by(iris[, 1:4], iris$Species, colMeans) # get the mean of the first 4 variables, by species
+class(by(iris[, 1:4], iris$Species, colMeans))# It returns an object of class “by” and there are many, more complex ways to use it.
+
+#by(dataframe, INDICES, FUN, ..., simplify=TRUE)
+#by可以当成dataframe上的tapply。indices应当和dataframe每列的长度相同。返回值是by类型的object by。若simplify=FALSE，本质上是个list。
+tdf <- data.frame(a=c(1:5), b=c(6:10))
+ind <- c(1,1,1,2,2)
+res <- by(tdf, ind, colMeans)#colMeans和rowMeans
+res
+#by是一个object
+#scale()#标准化一个数组／矩阵。具体来说，是把每一列先减去这一列的中心，然后除以这一列的标准差。
+
+#3 eapply()
+#Description: “eapply applies FUN to the named values from an environment and returns the results as a list.”
+# a new environment
+e <- new.env()
+# two environment variables, a and b
+e$a <- 1:10
+e$b <- 11:20
+# mean of the variables
+eapply(e, mean)
+class(eapply(e, mean))
+class(e)#environment was commonly used by R packages such as Bioconductor 
+
+#4 lapply# 对 list、data.frame数据，输出list
+#Description: “lapply returns a list of the same length as X, each element of which is the result of applying FUN to the corresponding element of X.”
+# 构建一个list数据集x，分别包括a,b,c 三个KEY值。
+ lx <- list(a = 1:10, b = rnorm(6,10,5), c = c(TRUE,FALSE,FALSE,TRUE));lx
+# 分别计算每个KEY对应该数据的分位数。
+ lapply(lx,fivenum)
+# 生成一个矩阵
+ x <- cbind(x1=3, x2=c(2:1,4:5))
+ x; class(x)
+lapply(x, sum)#lapply会分别循环矩阵中的每个值，而不是按行或按列进行分组计算。
+#如果对数据框的列求和
+ lapply(data.frame(x), mean)#lapply会自动把数据框按列进行分组，再进行计算。
+#lapply（）（代表list apply）与矩阵的apply（）函数的用法类似， 对列表的每个组件执行给定的函数，并返回另一个列表。
+ 
+lapx <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
+lapply(lapx, mean)
+
+#4.1 sapply()
+#Description: “sapply is a user-friendly version of lapply by default returning a vector or matrix if appropriate.”
+#sapply函数是一个简化版的lapply，sapply增加了2个参数simplify和USE.NAMES，主要就是让输出看起来更友好，返回值为向量，而不是list对象。
+#sapply(X, FUN, ..., simplify=TRUE, USE.NAMES = TRUE)
+#X:数组、矩阵、数据框
+#FUN: 自定义的调用函数
+#…: 更多参数，可选
+#simplify: 是否数组化，当值array时，输出结果按数组进行分组
+#USE.NAMES: 如果X为字符串，TRUE设置字符串为数据名，FALSE不设置
+#计算过程同lapply，返回结果为向量
+#simplify=FALSE和USE.NAMES=FALSE，那么完全sapply函数就等于lapply函数
+x <- cbind(x1=3, x2=c(2:1,4:5))
+# 对矩阵计算，计算过程同lapply函数
+ sapply(x, sum)
+# 对数据框计算
+sapply(data.frame(x), sum)
+# 检查结果类型，sapply返回类型为向量，而lapply的返回类型为list
+class(lapply(x, sum))
+class(sapply(x, sum))
+# create a list with 2 elements
+l <- list(a = 1:10, b = 11:20,c("a","b","c"))
+# mean of values using sapply
+l.mean <- sapply(l, mean)
+l.mean
+# what type of object was returned?
+# it's a numeric vector, so we can get element "a" like this
+l.mean[['a']]
+
+class(l.mean)
+#sapply（）（代表simplified [l]apply）可以将结果整理以向量，矩阵，列表 的形式输出。
+sapply(arrayx,function(x) {x^2})#返回vector，20个,returning a vector
+sapply(1:20,function(x){matrix(x^2,2)})
+sapply(1:5,function(x) {matrix(x,3,1)})#returning a matrix
+sapply(1:5,function(x) matrix(x,2,2), simplify = "array")# if simplify = "array", an array if appropriate
+#对于字符串的向量，还可以自动生成数据名。
+val<-head(letters)
+# 默认设置数据名
+sapply(val,paste,USE.NAMES=TRUE)
+# USE.NAMES=FALSE，则不设置数据名
+sapply(val,paste,USE.NAMES=FALSE)
+#sapply应用场景？
+
+#4.2 vapply
+#Description: “vapply is similar to sapply, but has a pre-specified type of return value, so it can be safer (and sometimes faster) to use.”
+#A third argument is supplied to vapply, which you can think of as a kind of template for the output.
+#vapply(X, FUN, FUN.VALUE, ..., USE.NAMES = TRUE)
+#vapply类似于sapply，提供了FUN.VALUE参数，用来控制返回值的行名，这样可以让程序更健壮
+l <- list(a = 1:10, b = 11:20)
+# fivenum of values using vapply
+l.fivenum <- vapply(l, fivenum,FUN.VALUE= c(Min.=0, "1st Qu."=0, Median=0, "3rd Qu."=0, Max.=0))
+l.fivenum
+class(l.fivenum)
+#vapply（）与sapply（）相似，他可以预先指定的返回值类型。使得得到的结果更加安全
+#等效于以下
+result=c()
+for (i in c(1:dim(ar)[1])) {
+    result <- c(result, sum(ar[i,,]))
+}
+
+# 4.3 replicate
+#Description: “replicate is a wrapper for the common use of sapply for repeated evaluation of an expression (which will usually involve random number generation).”
+replicate(10, rnorm(10),simplify = T)
+
+#5 mapply
+#Description: “mapply is a multivariate version of sapply. mapply applies FUN to the first elements of each (…) argument, the second elements, the third elements, and so on.”
+l1 <- list(a = c(1:10), b = c(11:20))
+l1
+l2 <- list(c = c(21:30), d = c(31:40))
+l2
+# sum the corresponding elements of l1 and l2
+mapply(sum, l1$a, l1$b, l2$c, l2$d)
+#Here, we sum l1$a[1] + l1$b[1] + l2$c[1] + l2$d[1] (1 + 11 + 21 + 31) to get 64, the first element of the returned list. All the way through to l1$a[10] + l1$b[10] + l2$c[10] + l2$d[10] (10 + 20 + 30 + 40) = 100, the last element.
+
+#6. rapply
+#Description: “rapply is a recursive version of lapply.”
+# let's start with our usual simple list example
+l <- list(a = 1:10, b = 11:20)
+l
+# log2 of each value in the list
+rapply(l, log2)
+# log2 of each value in each list
+rapply(l, log2, how = "list")
+# what if the function is the mean?
+rapply(l, mean)
+rapply(l, mean, how = "list")
+#So, the output of rapply depends on both the function and the how argument. When how = “list” (or “replace”), the original list structure is preserved. Otherwise, the default is to unlist, which results in a vector.
+
+#You can also pass a “classes=” argument to rapply. For example, in a mixed list of numeric and character variables, you could specify that the function act only on the numeric values with “classes = numeric”.
+
+#7 tapply
+#Description: “Apply a function to each cell of a ragged array, that is to each (non-empty) group of values given by a unique combination of the levels of certain factors.”
+
+#tapply(array, indices, margin, FUN=NULL,...)#tapply通常也有三个参数，第一个指定array，第二个是指定输入数据如何分组indices，是一个list对象,按indices中的值分组，list中的每一个元素都是与array有同样长度的因子,把相同值对应下标的array中的元素形成一个集合，应用到FUN。且该当第二个参数INDEX不是因子时，函数 tapply() 同样有效。类似于group by
+#第三个参数指定在每一个分组内，应用什么函数FUN。
+#如果FUN返回的是一个值，tapply返回vector；若FUN返回多个值，tapply返回list。vector或list的长度和indices中不同值的个数相等。
+#simplify是逻辑变量，若取值为TRUE（默认值），且函数FUN的计算结果总是为一个标量值，那么函数tapply返回一个数组；若取值为FALSE，则函数tapply的返回值为一个list对象。
+#当FUN为NULL的时候，返回一个长度和array中元素个数相等的vector，指示分组的结果，vector中相等的元素所对应的下标属于同一组。例如，返回c(1, 2, 1, 3, 2), 表示根据传入的indices，第1、3个元素作为一组，第2、5个元素作为一组，第4个元素作为一组。
+#tapply（x，f，g）需要向量 x (x不可以是数据框)，因子或因子列表 f , 函数 g 。
+#tapply（）执行的操作是：按照f对x分组，在分组后的向量上运行函数 g
+#“tapply(X, INDEX, FUN = NULL, …, simplify = TRUE)”, where X is “an atomic object, typically a vector” and INDEX is “a list of factors, each of same length as X”.
+# mean petal length by species
+tapply(iris$Petal.Length, iris$Species, mean)
+
+v <- c(1:5)
+ind <- c('a','a','a','b','b')
+indx<-tapply(v, ind)#int建立，指示分组的结果，vector中相等的元素所对应的下标属于同一组。
+# (indx)
+tapply(v, ind, sum)
+tapply(v, ind, fivenum)# (minimum, lower-hinge, median, upper-hinge, maximum)
+#？？？
+indx[3]
+warpbreaks
+tapply(warpbreaks$breaks,list(warpbreaks$wool,warpbreaks$tension),mean)#注意和aggregate()区分第一个参数
+
+#apply()#作用目标是array，在每个元素应用
+#tapply()#作用目标是array，在子集合上应用#记忆技巧：table+apply
+#lapply()#作用目标list(dataframe可看作特殊list)，在每个元素应用#记忆技巧：list apply
+#by()#作用目标list(dataframe可看作特殊list)，在子集合上应用# 
+#（1）apply(array, margin, FUN, ...)#margin表示数组引用的第几维下标，在array上，沿margin方向，依次调用FUN。
+#apply一般需要三个参数，而lapply/sapply一般需要两个参数，第一个参数是输入数据，第二个是function。sapply是simplified [l]apply，返回的是一个vector,matrix or list，但是lapply返回的是一个list
+```
+
+##1.4 集合及匹配
+```{r 交集并集}
+#union()
+#intersect()
+ux<-c(1,2,3,7,8,9,NA)
+ux
+uy<-c(1,2,4,4,5,5,6,NA)
+uy
+union(ux,uy)#ux u uy
+intersect(ux,uy)#ux n uy 
+setdiff(ux,uy)# ux-(ux n uy)
+#以上三者都会去重，得到的集合都是无重复值的
+sx<-ordered(1,2,3)
+sx
+sy<-ordered(3,2,1)
+sy
+setequal(sx,sy)#判断数据集是否相同，结果为逻辑值F or T,两集合无顺序的概念
+identical(sx,sy)# The safe and reliable way to test two objects for being exactly equal. It returns TRUE in this case, FALSE in every other case. !!!
+#合并cbind 和rbind
+#两个数据框行（列）数必须相同个，可通过删除或是添加NA来使行列数相同#！！！生成matrix
+cx1<-c(1,2,3,4)
+cx2<-c(5:7,NA,25)
+cx3<-c(8:12)
+r1<-cbind(cx1,cx2)# 按列自动循环填充 （对空的的处理）
+cbind(1, 1:7)
+cbind(I = 0,you=1,his=2, X = rbind(a = 1, b = 1:3,c=5))#matrix
+r2<-rbind(cx1,cx2)#按行自动循环填充（对空的处理）
+rbind(2,1:5)
+r31<-cbind(r1,cx3)
+r32<-rbind(r2,cx3)
+```
+
+```{r 匹配和合并}
+#匹配
+#x %in% table #结果为与x等长的TURE/FALSE向量,和which连用，可实现匹配查找并提取
+#dataframe[which(dataframe$var %in% c1),] #如果把which去掉，会出现NA空行；
+which(c("a","b","A","a","b") %in% c("a","b","A","a","b","w")) #同样不适用查找table有重复的，因为返回查到的一次的结果
+
+#match(x,table) #结果为与x等长的table位置向量
+match(c("c","B",NA,3),c(letters,LETTERS))
+#%in% <- function(x,table) match(x,table,nomatch = 0) >0
+uy %in% ux #判断uy中每个元素是否在ux中，结果为对应元素的在不在的逻辑值F or T
+uy[uy %in% ux]# 同(uy n ux)
+1:10 %in% c(1,3,5,9)
+sstr <- c("c","ab","B","bba","c",NA,"@","bla","a","Ba","%")
+sstr[sstr %in% c(letters, LETTERS)]
+sstr[!sstr %in% c(letters, LETTERS)]
+"%w/o%" <- function(x, y) x[!x %in% y]#x without y,同setdiff(x,y)
+(1:10) %w/o% c(3,7,12)
+
+#匹配合并 merge
+#merge效果同dplyr的join，join的效力更高
+#(1)inner_join 等价于 merge(all=F)#交集
+#(2)left_join 等价于 merge(all.x=T, all.y=F)#左并集
+#(3)right_join 等价于 merge(all.x=F, all.y=T)#右并集
+#(4)full_join 等价于 merge(all=T)#全并集
+#(@)rbind.fill(...)#  Combine data.frames by row, filling in missing columns.
+plyr::rbind.fill(mtcars[c("mpg", "wt")], mtcars[c("wt", "cyl")])
+authors <- data.frame(surname = I(c("Tukey", "Venables", "Tierney", "Ripley", "McNeil")),
+                      nationality = c("US", "Australia", "US", "UK", "Australia"),
+                      deceased = c("yes", rep("no", 4))) ## I(*) : use character columns of names to get sensible sort order
+
+books <- data.frame(
+  name = I(c("Tukey", "Venables", "Tierney",
+             "Ripley", "Ripley", "McNeil", "R Core")),
+  title = c("Exploratory Data Analysis",
+            "Modern Applied Statistics ...",
+            "LISP-STAT",
+            "Spatial Statistics", "Stochastic Simulation",
+            "Interactive Data Analysis",
+            "An Introduction to R"),
+  other.author = c(NA, "Ripley", NA, NA, NA, NA,
+                   "Venables & Smith"))
+m1<-merge(authors,books,by.x = "surname",by.y="name")#"surname"是authors,"name"是books的变量，合并后保留surname，data x中变量
+m1
+m2<-merge(books,authors,by.x = "name",by.y = "surname")
+m2#m1和m2结果相同，只是变量名不同
+#left_join
+m3<-merge(authors,books,by.x = "surname",by.y = "name",all.x = T,all.y = F)
+m3
+#right_join
+m4<-merge(authors,books,by.x = "surname",by.y = "name",all.x = F,all.y = T)
+m4
+#full_join
+m5<-merge(authors,books,by.x="surname",by.y = "name",all=TRUE)
+m5
+#by=c("var1","var2")?
+
+```
+
+```{r}
+#所有的运算，并以较高优先级至较低优先级的顺序排列。相同优先级的运算符，除特指外皆由从左至右的顺序进行运算。
+#逻辑运算的优先级如何？
+#ctrl+shift+c 大段选中注释
+#up to down ,left to right
+#[ [[      索引方法2.9
+#:: :::    使用名称访问变量
+# $@       元素提取、位置提取
+# ^        指数形式
+# -+       元素的负、正
+# :        创建数列方法2.7，7.14
+# %any%    特殊运算符讨论 %% 取模；%/%整除；%*% 矩阵乘积；%in%
+# * /      乘、除讨论
+# +-       加、减
+# == !=  < > <= >=    比较运算符方法2.8
+# ！                  逻辑取反
+# &  &&               逻辑“与”、 短路“与”
+# |  ||               逻辑 “或”、 短路“或”
+# ~                   公式方法11.1
+# ->  ->>             向右赋值方法2.2
+# =                   赋值（从右向左）方法2.2
+# <-  <<-             赋值（从右向左）方法2.2                                        
+# ?                   帮助 方法1.7
+a<-data.frame(x1=c(1:10),
+              x2=c(12:21))
+a$x1[4]+-a$x1[5] %in% a$x1
+a$x1>3 & a$x1<2| a$x1>5
+a$x2[!a$x2 >16]
+```
+
+```{r 映射属性}
+#names()#to get or set the names of an object,可提取或是建立对应关系
+nx<-c("ab1","ab2","ab3","abc3","ab1","ab4")
+names(nx)<-c("col1","col2","col3","col4")
+nx
+names(nx)#注意nx可重复，且赋值的向量长度应与之相同
+attributes(nx)
+names(nx)[2]#如何提取特定name的值？？
+#attributes() 和attr()m建立映射 #attr()方法可以将不能数据类型转换成其他的数据类型，比如将向量转换成矩阵；可以将列表转换成逻辑类型的
+#attributes(obj) <- value
+#attr(x, which, exact = FALSE)
+#attr(x, which) <- value
+mx<-1:10
+attr(mx,"dim") <- c(2,5)# create a 2 by 5 matrix
+mx
+#attr()和attributes()的区别
+ax<-c(1:3)
+ay<-c("red","blue","green")
+names(ay)<-ax
+ay
+class(ax)
+class(ay)
+attributes(ay)
+attr(ay,"names")
+attr(ay,"names")<-c("红","蓝","绿")
+ay
+attr(ay,"type")<-"fruit"
+ay
+attr(ay,"col")<-c(0.3,0.2,0.5)
+attributes(ay)
+az<-c(1.2,3.3,4.5,3.0,1.5)
+attr(az,"count")<-c(1:5)
+attr(az,"types")<-c("all","part","all","all")
+az
+attributes(az)
+class(az)
+str(az)
+#应用场景？？
+#因子，R中把名义型和有序型变量都称为因子(factor)，内部关联，即变量值与唯一的水平一一对应
+# split()是将输入的第一个对象按照输入的第二个（强制转换的）factor的水平进行分割。得到的结果将是一个list
+# 我们需要使用I()函数来整合它。这里的I是AsIs的意思，即指输入是什么就是什么
+# data.frame(A=1:3, B=I(list(1, 1:2, letters[1:3])))
+# 在使用list时需要记住的是，它是一种消耗内存的数据结构，如果数据量非常大，需要尽量避免使用list结构。
+type<-c("a","b","c","b","c")
+ftype<-factor(type)
+ftype#名义变量，无序，表类别
+or_ftype<-factor(type,ordered = T)
+#or or_ftype<-ordered(type)
+or_ftype#有序变量，升序
+#为类别变量创建值标签,常用于秩和检验
+v_or_ftype<-factor(type,levels = c(1,2,3),labels=c("a","b","C"))
+v_or_ftype
+names(v_or_ftype)
+names(ftype)
+names(or_ftype)
+attributes(v_or_ftype)
+levels(v_or_ftype)
+attributes(ftype)
+levels(ftype)
+attributes(or_ftype)
+levels(or_ftype)
+```
+```{r 排序}
+#sort(x)是对向量x进行排序，rank()是求秩的函数，它的返回值是这个向量中对应元素的“排名”，order()的返回值是对应“排名”的元素所在向量中的位置。
+df.ord<-data.frame(or_name=c("o","r","d","e","r2"),
+                   or_val=c(1,3,2,5,5))
+df.order<-df.ord[order(df.ord$or_val,decreasing = TRUE),]
+df.order
+new_order<-c("o","r","d","e","r2")#rank by order arrangaged by own,use match(),可以有重复，按照因子对重复序列排序
+df.ordern<-df.order[match(df.order$or_name,new_order),]# 
+```
+##1.5 正则运算和处理字符的函数
+
+```{r 正则，提取查找字符}
+#提取字符
+#substr()与substring()
+#substr(x,start,stop)
+#substring(text,first,last = 100000L)#可以只设置first参数，last参数若不设置，则默认为1000000L，通常是指字符串的最大长度。
+#substr(x, start, stop) <- value
+#substring(text, first, last = 1000000L) <- value
+sx<-c("he  llo","y  uyf","world")
+substr(sx,2,3)
+substring(sx,2)
+substr(rep("abcdef",4),1:4,4:5)#1:4,2:5，3:4,4:5
+substr("abcdefghijk", 1, 4)#提取字符，参数是子集所处的起始和终止位置
+#replace text
+sub(pattern = "b", replacement = "B",x=c("baby","balabla","bananab"))#搜索字符串的特定表达式,只替换第一个，（不管有几次匹配），适用于改变首字母
+gsub(pattern = "b", replacement = "B",x=c("baby","balabla","bananab"))#搜索字符串的特定表达式，并用新的内容加以替代全部。
+text<-"Hello Adam! \nHello Ava!"
+print(text)
+cat(text)
+text1<-sub(pattern = "Adam",replacement = "World",text)
+cat(text1)
+cat(sub(pattern = "Adam|Ava",replacement = "World",text))#只换一个
+cat(gsub(pattern = "Adam|Ava",replacement = "world",text))#全都换
+#sub()和gsub()函数可以使用提取表达式（转义符+数字）
+sub(pattern = ".*(Adam).*",replacement = "\\1",text)
+str<-"Now is the time     "
+sub(" +$","",str)
+sub("[[:space:]]+$","",str)
+sub("\\s+$","",str)
+sub("\\s+$","",str,perl = TRUE)
+sub("\\t+$","",str)
+#linux perl !!!
+txt<-"a test of capitalizing"
+txt
+gsub("(\\w)(\\w*)","\\U\\1\\L\\2",txt,perl = TRUE)#每个单词首字母大写
+name<-"Bob"
+cat("Hello",name,"\b.\n","Isn\'t R","\t","GREAT?\n")#转义符, 输入\\打印的也是\\, 输入\" 打印引号",  \n: 换行, \t: tab, \b:空格；单双引号的结果一样
+
+#grep(pattern, x, ignore.case = FALSE, perl = FALSE, value = FALSE,fixed = T, useBytes = FALSE, invert = FALSE)#搜索给定字符串对象中特定表达式 ，并返回其位置索引
+#grepl(pattern, x, ignore.case = FALSE, perl = FALSE,fixed = FALSE, useBytes = FALSE)
+#grep和grepl的区别在于grep返回的是匹配正确的字符串在 x 向量中的元素下标。而grepl返回的则是逻辑变量TRUE和FALSE。ignore.case 决定匹配是否对大小写敏感
+#grep()的“value”默认为F，输出的值就是刚才说的元素下标或者逻辑值，如果改成T，就会输出查找的字符串。“ignore.case”，默认是F，表示大小写敏感，可以改为T，表示大小写不敏感。“useBytes”默认是F，表示按字符查找，如果是T则表示按字节查找，对于中文字符影响很大。“invert”默认为F，表示正常的查找，如果为T则查找模式的补集，“x”表示要查找的向量；参数“perl”，默认为F，如果选择T表示使用Perl的正则表达式规则；fixed，T选择之后就会进行精确的匹配，不再使用正则表达式的规则
+
+#一般多种参数设置后，用于以下的情况：常规grep、扩展grep、Perl正则表达式、精确匹配
+```
+
+```{r 整合, 拆分字符}
+#paste (..., sep = " ", collapse = NULL)
+nth <- paste0(1:12, c("st", "nd", "rd", rep("th", 9)))
+paste(month.abb, nth, sep = ": ", collapse = "; ")
+paste("Your","eyes","could","simle")# 默认分割符是空格
+paste("Your","eyes","could","simle",sep = "")#无分隔符
+paste("Your","eyes","could","simle",sep = ",")#,为分隔符
+paste0()#wufeng lianjie
+# cut(x, n) #将连续型变量x分割为有着n个水平的因子
+cut(c(1,2,3,4,5,6,7,8,9,10),5)
+#cut(x,n,ordered_result=TRUE)#创建一个有序因子
+#pretty(x,n)#创建美观的分割点，通过n+1个等间距的取整值，绘图中常用
+pretty(2:9,4)#how to do
+#cat(...,file = "myfile",append = FALSE)#连接...中的对象，并将其输出到屏幕，文件被替代或被增加内容在源文件
+#split(x,f)按照已有的类别数据，分类。X 是待分组的向量，矩阵或数据框。f是分组因子。
+levels(iris$Species)
+split(iris$Sepal.Length,c("setosa","versicolor", "virginica"))
+#strsplit()#分割字符
+strsplit("ubderstanding:outline:you",split = "*",fixed = F)#strsplit()字符分割形式将其进行划分，它正是paste()的逆操作。
+strsplit("ubderstanding:outline:you",split = "*",fixed = T)#设置fixed= T则表示是用普通文本匹配或者正则表达式的精确匹配
+#unsplit()#split()的逆函数
+unlist(strsplit("ubderstanding:outline:you",split = "*",fixed = T))
+strx<-c(as="asfef",qu="qwerty","yuiop","b","stuff.blah.yech")
+unlist(strsplit(strx,".",fixed =T))#
+strsplit(""," ")[[1]]
+strsplit(" "," ")[[1]]#list取用元素，用list[[number]]
+#倒序运用
+strReverse<-function(x)sapply(lapply(strsplit(x,NULL),rev),paste,collapse=",")
+strReverse(c("abc","Statistics"))
+```
+#2 reshape2包
+```{r 数据框的塑型}
+#reshape2包
+#melt() #使每一行都是一个唯一的标识符-变量组合
+#cast #reshape包中，使用任何函数对数据进行整合成想要的任何形状;dcast(),acast()是reshape2包
+ID<-c(1,1,2,2)
+Time<-c(1,2,1,2)
+rx1<-c(5,3,6,2)
+rx2<-c(6,5,1,4)
+myrdata<-data.frame(ID,Time,rx1,rx2)
+library(reshape2)
+md<-melt(myrdata,id=c("ID","Time"))
+md
+#md<-melt(myrdata,id=1:2) #同上
+mda<-dcast(md,ID~variable,mean)
+mda
+mdb<-dcast(md,Time~variable,mean)
+mdb
+mde<-dcast(md,ID~Time,mean)
+mde#以上是执行mean整合的结果，~前值为行，~后值为列
+mdd<-dcast(md,ID+time~variable)
+mdd
+mde<-dcast(md,ID+variable~Time)
+mde
+mdf<-dcast(md,ID~variable+Time)
+mdf# 不执行整合时，仅将数据重构，~前的值会作为行，~后的组合值会作为新变量名作为列名
+#dcast 和cast, dcast返回结果是数据框，acast返回的结果是向量，矩阵和数组
+```
+#3 dplyr包
+```{r dplyr包数据框塑型}
+#select(): 按列变量选择
+#filter(): 按行名称分片
+#slice(): 按行索引分片
+#mutate(): 在原数据集最后一列追加一些数据集
+#summarise(): 每组聚合为一个小数量的汇总统计，通常结合gruop_by()使用
+#arrange(): 按行排序
+
+#将过长过大的数据集转为显示更友好的tbl_df类型
+library(dplyr)
+head(iris)
+iris_df<-tbl_df(iris)
+head(iris_df)#tbl_df 显示更友好，数据框格式可不用这样转化；cube元组、SQL对象转化成tbl数据类型
+#filter()# 按行名称分片
+filter(iris_df,Species=="setosa",Sepal.Length>=5)
+filter(iris_df,Species=="setosa"&Sepal.Length>=5)
+#select()#按列变量选择,选择列，作为子集
+select(iris_df,5,1:2)
+select(iris_df,Species,Sepal.Length,Sepal.Width)
+select(iris_df,everything())
+select(iris_df,Species,everything())#Species为第一列
+select(iris_df,starts_with("Petal"))
+select(iris_df,petal=starts_with("Petal"))#重命名选出的两列
+#filter() + select() 类似于base::subset()
+#subset(dt,select=c(var1name,var2name),var3name>value1)
+subset(iris_df,select=1:5,Species=="setosa"&Sepal.Length>=5&Sepal.Width>3)#select选择列，该参数不能少
+#arrange() 排列
+arrange(iris_df,Sepal.Length,Sepal.Width)#变量的先后顺序，表示排序的优先级，默认升序
+arrange(iris_df,desc(Sepal.Length),Sepal.Width)#desc()内的变量按降序排列
+#用base包中order实现
+iris_df[order(iris_df$Sepal.Length,iris_df$Sepal.Width),]
+iris_df[order(desc(iris_df$Sepal.Length)),]
+
+#(1)starts_with(x, ignore.case = TRUE): names starts with x
+#(2)ends_with(x, ignore.case = TRUE): names ends in x
+#(3)contains(x, ignore.case = TRUE): selects all variables whose name contains
+#(4)matches(x, ignore.case = TRUE): selects all variables whose name matches the regular expression x
+#(5)num_range("x", 1:5, width = 2): selects all variables (numerically) from x01 to x05.
+#(6)one_of("x", "y", "z"): selects variables provided in a character vector.
+
+#添加新变量mutate
+mtcars_df<-tbl_df(mtcars)
+mutate(mtcars_df,displ_l=disp/61.0237)
+transmute(mtcars_df,displ_l=disp/61.0237)#只返回计算的结果，data.frame
+#plyr::mutate() 与 base::transform() 相似, 优势在于可以在同一语句中对刚增加的列进行操作
+plyr::mutate(iris_df,Sepal.LW=Sepal.Length*Sepal.Width,Sepal.LWo=Sepal.LW/0.5)
+#汇总summarise()
+dplyr::summarise(mtcars_df,mean(disp,na.rm = TRUE),n())#package name::functionname 需要用某个函数时临时直接加载包,可尽可能减少library带来的副作用
+#plyr and dplyr 同时加载使用会有问题，reshape2 and tidyr 同时使用也会有问题
+summarise(group_by(mtcars_df,cyl),mean(disp),n())
+summarise(group_by(mtcars_df,cyl),mean(disp),sd=sd(disp))
+#Useful functions
+#Center: mean(), median()
+#Spread: sd(), IQR(), mad()
+#Range: min(), max(), quantile()
+#Position: first(), last(), nth(),
+#Count: n(), n_distinct()#计算 x 中唯一值的个数
+#Logical: any(), all()
+#对每X一列运X行概述函数
+summarise_each(iris,funs(mean))
+#group_by(.data,groupvalue)#data可以管道形式输入
+by_Species<-iris%>%group_by(Species)
+by_Species
+tail(by_Species)
+by_Species %>% summarise_each(funs(length))
+by_Species %>% summarise_each(funs(mean))
+by_Species %>% summarise_each(funs(mean),Petal.Width)
+by_Species %>% summarise_each(funs(mean),matches("Width"))#summartise_each 过时了
+#count()#计算数据框中，某一变量的不同值的行数，或权重行数
+count(iris,Species,wt=Sepal.Length)#带wt权重
+count(iris,Species,mycount=n())#不带权重
+#tally()#计数
+tm<-mtcars %>% group_by(cyl,vs) %>%
+  tally(sort=TRUE)
+mtcars %>%
+  group_by(cyl,vs) %>%
+  summarise(n=n())
+# %>% 减少中间文件的产生，但不好复核数据
+#arrange(cyl,vs,n)
+#group_by()添加了分组信息后，mutate(),arrange()和summarise()函数会自动将类数据框tbl数据执行分组操作
+```
+#4 R控制流
+```{r 逻辑控制}
+#控制流:statement,condition,expression,sequnece
+#语句statement，{}中R语句用;隔开
+#条件cond，最终被解析为真或假的表达式
+#表达式expr，是一条数值或字符串的求值语句
+#序列(seq) 是一个数字或字符串的序列
+#重复和循环
+#for (var in seq) statement #for循环重复执行statement，直到var不再包含在seq中
+for (i in 1:2) {print("Hello")}#重复输出Hello5次，{}单句时可省略
+#while (cond) statement 
+i<-2
+while(i >0) {print("Hello");i<-i-1} #循环重复执行一个语句，直到条件不为真为止
+#条件执行
+#if else
+#if (cond) statement
+#if (cond) statement1 else statement2
+#ifelse是if else的向量化版本,希望输出是向量时，用ifelse;有个bug ifelse（）不能返回字符串向量，只返回向量的第一个；此时用if（）{}else{}
+#ifelse(cond,statement1,statement2)
+score<-sum(1:10)/1
+score
+ifelse(score>0.5,print("Passed"),print("Failed"))
+
+#switch(expr,...)#根据表达式的值选择执行语句,...表示与expr的各种可能输出值绑定的语句；一般用于expr得到的值多于两个的情况，如果值只有两个，就可以用ifelse替代
+feelings<-c("sad","afraid")
+for (i in feelings)
+  print(
+    switch(i,happy="simile",
+           afraid="check",
+           sad="cry",
+           angry="roar"
+           )
+  )
+
+#自编函数
+#myfunction<-function(arg1,arg2,...) {statements return(object)}
+#myfunction1<-function(x){x}
+#如
+mysum<-function(x){sum(x^2)}
+test<-1:10
+mysum(test)
+```
+# **构建mtrix
+从data.frame
+```{r 转化为数值型矩阵}
+library(readxl)
+testdt <- read_excel("testdt.xlsx",sheet = "genomic_alterations")
+library(reshape2)
+mdt<-testdt[,c("GENE","SMP_ID","VAR_TYPE_SX")]
+mtn<-dcast(mdt,GENE~SMP_ID)#利用reshape2包构建mtrix,numeric data,表次数
+mtn[is.na(mtn)]=""
+rownames(mtn) <- mtn[,1]
+mtn <- t(as.matrix(mtn[,-1]))
+head(mtn,n=1L)
+```
+```{r 转化为字符型矩阵}
+library(reshape2)
+mtc <- dcast(mdt, SMP_ID ~ GENE, fun.aggre = function(x){paste(x, collapse = ',')})#构建字符型矩阵，合并字符数据
+rownames(mtc) <- mtc[,1]
+mtc <- t(as.matrix(mtc[,-1]))
+head(mtc,n=1L)
+```
+# **R补充知识
+```{r}
+a=c("ACC 腺样囊性癌
+BLCA 膀胱癌
+BRCA 乳腺癌
+CESC 宫颈鳞状细胞癌
+CHOL 胆癌
+COAD 结肠癌
+DLBC 淋巴癌
+ESCA 食管癌
+GBMLGG 脑癌
+HNSC 头颈部鳞癌
+KICH 嫌色细胞癌
+KIRC 肾透明细胞癌
+KIRP 乳头状肾细胞癌
+LAML 骨髓癌
+LIHC 肝癌
+LUAD 肺腺癌
+LUSC 肺鳞状细胞癌
+MESO 胸膜癌
+OV 卵巢癌
+PAAD 胰腺癌
+PCPG 肾上腺癌
+PRAD 前列腺癌
+READ 直肠癌
+SARC 软组织癌
+SKCM 皮肤癌
+STAD 胃癌
+TGCT 睾丸癌
+THCA 甲状腺癌
+THYM 胸腺癌
+UCEC 子宫内膜癌
+UCS 子宫癌
+UVM 眼癌")
+a=strsplit(unlist(strsplit(a,"\n"))," ")
+a
+da=t(vapply(a,paste,FUN.VALUE = c(eng="",chi="")))# list every key
+class(da)
+```
+```{r}
+#####类和对象#####
+#R是一种基于对象(object)的语言，所以我们在R语言中看到的一切事物都是对象，向量是对象，函数是对象，图形是对象。
+
+# 简单说，我们可以把整个R看成是一个储物室，它的内容是由内在不同的储物盒(对象)组成, 每个盒子有不同属性(attribute), 最重要的一种属性是它的类(class).
+
+#查看、删除 
+# ls：list的缩写，我们要查看物品，所以要先列出目录。 
+# pat：pattern的缩写，模式。 
+# rm：remove的缩写，移除
+# ls()                   #我们就可以知道储物室里有哪些盒子啦！
+# ls(pat="x")            #我们就可以知道储物室中物品标签带x的盒子。
+# ls(pat="^x")           #标签以x开头的盒子。
+# ls.str()               #查看完有哪些盒子，就要开始看盒子里具有有什么咯~
+# rm(y)                  #删除y这个盒子。
+# rm(list=ls())          #删除全部盒子
+# rm(list=ls(pat="x"))   #删除标签有x的盒子
+
+# 对象的特点
+# 1、对象具有的基本的类有：数值（numeric）、逻辑（logical）、字符（character）、列表（list）。
+# 2、在此基础上构成了一些复合型的类：矩阵（matrix）、数组（array）、因子（factor）、数据框（dataframe）。
+# 3、除了内置类外还有其他的，包括我们可以自创，但是全部都是基于基本类之上。
+
+#数据类型 主要包括：数值型、字符型、逻辑型、复数型。complex 复数型，数字上面加个i ；logical 逻辑型 TRUE or FALSE ，你可以缩写成T or F ，但是最好统一写法。
+# 但是要注意有两种情况不能用上述4种数据类型来描述，分别是数据的缺失（NA）和数据的未知状态（NULL）。
+# is.na：R语言中向量下标的第一个元素为1，若有NA，返回对应的TRUE，否则是FLASE
+# is.null：在处理向量时不会分别判断内部数据，而是把向量当作一个数据统一判断，其返回值只有一个FLASE。
+# > x<-c(10,20,30,40,NA)
+# > y<-c(10,20,30,40,NULL)
+# > is.na(x)
+# [1] FALSE FALSE FALSE FALSE  TRUE
+# > is.null(y)
+# [1] FALSE
+# NA：占据数据空间，参与运算
+# NULL：不占据任何数据空间
+# R语言中使用属性来辅助描述每个对象信息，固有属性：模式（mode）和长度(length)。了解其余属性，可以借助与attributes()和attr()函数。
+df<-data.frame(a=c(1:10),b=sample(c('F','M'),size=10,replace=T))
+attributes(df)#展示列名、行名、数据类型
+attr(df,'names')#展示自己想要的结果（列名、行名、数据类型）
+attr(df,"names")[1]<-'new_name'#重命名列名
+attr(df,"row.names")<-LETTERS[1:10]#可以重命名行名
+df
+#属性查看
+#a是自创的向量，而mtcars是一个数据集。
+#对于内置的基本类，attribute表示无f*ck想说。
+#a<-c(1,2,3,4)
+#>attributes(a)
+#NULL
+#>attributes(mtcars)
+# $names
+#  [1] "mpg"  "cyl"  "disp" "hp"   "drat" "wt"   "qsec" "vs"   "am"   "gear" "carb"
+# 向量索引：下标，名字，T/F，which，subset，grep，%in%， match索引
+#mode推荐查看数据类型
+#class推荐查看类别 
+#还有一种是typeof()  显示内容更加详细
+#详细程度 mode<class<typeof
+
+#之前学习的字符向量、数值向量、数据框、列表以及数组都是一个类。
+#用class函数定义类
+teams<-c("PHI","NYM","FLA","ATL","WSN")
+w<-c(92,89,94,72,59)
+l<-c(70,73,77,90,102)
+nleast<-data.frame(teams,w,l)
+#定义teams类
+class(teams)
+class(w)
+class(nleast)
+#函数也属于对象,叫function对象
+class(class)
+#某些函数和特定的类相关联,称为方法。
+#作用于不同类的方法名称可以不同
+#这种方法叫泛型函数,有点类似于Object中toString方法
+#+就是一个泛型函数
+#操作整形
+17+6
+#操作日期型
+as.Date("2015-01-19")+7
+#print函数也是
+
+#数组和矩阵的下标
+# 下标可以用正整数，负整数，字符串和条件式；用负整数时只能去除整或是整列，不能扣去某个元素
+x=matrix(1:20,4);x[x>7] #默认返回向量
+x[,x[1,]>2] #符合第一行大于2的所有列
+x[x[,2]>7,]    #第二列大于7的所有行，注意此时只有最后一行符合要求，默认返回值为一个向量
+x[x[,2]>7,,drop=F]    #使用drop参数使返回值保持矩阵类型
+x=matrix(1:4,2,2); colnames(x)=c('a','b'); rownames(x)=c('a','b'); x['a','b']#当各维度具有names属性时，可使用字符串下标
+x=matrix(1:6,3) #避免矩阵的意外降维 ，用drop=F
+    y=x[1,]    #此时y成为一个长度为2的向量
+    y=x[3,,drop=FALSE]    #此时y为只有一行的矩阵
+    y=x[,1,drop=FALSE]    #此时y为只有一列的矩阵
+#数据框的建立
+#1、可通过data.frame将若干向量组成数据库，但向量必须有相同的长度或长度有倍数关系，如果其中有一个比其它的短，它将按循环法则“循环”整数次。
+    #使用transform一次添加多个变量。例：z=transform(z, a=1/x, b=1/y)
+    #subset，（略过NA）
+      x=c(1:3,NA)
+    x[x>2]    #输出“[1]  3 NA”
+      subset(x,x>2)    #输出“[1] 3”
+#列表list，用[[i]] 表示数据层级关系
+    #listr[[2]][[3]][2,3]    #该数据在第三层第二行第三列，第二层第三个元素，第一层第二个元素中。双层方括号里也可以放变量名
+    #当建立列表时命名了第一级下标的名称，则可以使用“列表名$变量名”，实际数据分析时，主要是提取列表部分数据以向量、列表、数组、矩阵或数据框的形式进行分析。
+      #利用which获取符合元素的下标
+      #将列表所有元素转成一个向量 unlist()
+```
+
+```{r}
+#配色
+ggsci::pal_igv(alpha = 1)(51) #ggplot2 scale_fill_igv() 
+#scale_fill_gradient2(low = "green",high ="red",mid = "yellow",midpoint = 0.4) #two grad colours
+plot(c(1:51),col=ggsci::pal_igv(alpha = 1)(51),pch=19)
+```
+# **ggplot2 visualization 
+```{r}
+# basic ggplot2
+ggplot(data=mpg,aes(x=cty,y=hwy))+ #add layers with +
+  geom_point(aes(color=cyl))+ #layer=geom+default stat + layer soecific mappings
+  geom_smooth(methood="lm")+# additional elements
+  coord_cartesian()+
+  scale_color_gradient()+
+  theme_bw()+#+theme_classic()
+  ggtitle("plot1")
+
+# geom_rect()很 有用 #https://zhuanlan.zhihu.com/p/37072513
+mydata <- data.frame(
+  Lebal  = c("Point1","Point2","Point3","Point4","Point5"),
+  xstart = c(5.5,15.7,19.5,37.2,36.9),
+  xend   = c(9.7,28.1,24.6,44.6,47.1), 
+  ystart = c(9.6,23.1,2.3,33.2,9.2),
+  yend   = c(16.1,36.2,11.7,38.5,15.3),
+  size   = c(12,48,30,11.5,28),
+  class  = c("A","A","A","C","C")
+)
+ggplot(mydata)+
+  geom_rect(aes(xmin = xstart,xmax = xend , ymin = ystart , ymax = yend , fill = class)) +
+  scale_fill_wsj()
+
+# ggsave("plot1.pdf",height = 5,width = 5) 
+
+#zooming
+t<-ggplot(mpg,aes(cty,hwy))+geom_point()
+t+coord_cartesian(xlim = c(0,100),ylim=c(10,20)) # without clipping 
+t+scale_x_continuous(limits = c(0,100))+scale_y_continuous(limits = c(10,20)) #with clipping
+#maps #https://cosx.org/2009/07/drawing-china-map-using-r
+library(mapproj)
+z<-ggplot(mpg,aes(fl))+geom_bar()+coord_map(projection = "ortho",orientation = c(41,-74,0)) #need mapproj package
+z
+
+par(mar=rep(0,4))
+dat = read.csv(text = "城市,jd,wd
+    北 京,116.4666667,39.9
+    上 海,121.4833333,31.23333333
+    天 津,117.1833333,39.15
+    重 庆,106.5333333,29.53333333
+    哈尔滨,126.6833333,45.75
+    长 春,125.3166667,43.86666667
+    沈 阳,123.4,41.83333333
+    呼和浩特,111.8,40.81666667
+    石家庄,114.4666667,38.03333333
+    太 原,112.5666667,37.86666667
+    济 南,117,36.63333333
+    郑 州,113.7,34.8
+    西 安,108.9,34.26666667
+    兰 州,103.8166667,36.05
+    银 川,106.2666667,38.33333333
+    西 宁,101.75,36.63333333
+    乌鲁木齐,87.6,43.8
+    合 肥,117.3,31.85
+    南 京,118.8333333,32.03333333
+    杭 州,120.15,30.23333333
+    长 沙,113,28.18333333
+    南 昌,115.8666667,28.68333333
+    武 汉,114.35,30.61666667
+    成 都,104.0833333,30.65
+    贵 阳,106.7,26.58333333
+    福 州,119.3,26.08333333
+    台 北,121.5166667,25.05
+    广 州,113.25,23.13333333
+    海 口,110.3333333,20.03333333
+    南 宁,108.3333333,22.8
+    昆 明,102.6833333,25
+    拉 萨,91.16666667,29.66666667
+    香 港,114.1666667,22.3
+    澳门,113.5,22.2")
+library(maps)
+library(mapdata)
+map("china", col = "darkgray", ylim = c(18, 54), panel.first = grid())
+points(dat$jd, dat$wd, pch = 19, col = rgb(0, 0, 0, 0.5))
+text(dat$jd, dat$wd, dat[, 1], cex = 0.9, col = rgb(0,
+    0, 0, 0.7), pos = c(2, 4, 4, 4, 3, 4, 2, 3, 4, 2, 4, 2, 2,
+    4, 3, 2, 1, 3, 1, 1, 2, 3, 2, 2, 1, 2, 4, 3, 1, 2, 2, 4, 4, 2))
+axis(1, lwd = 0); axis(2, lwd = 0); axis(3, lwd = 0); axis(4, lwd = 0)
+
+library(maptools);
+x=readShapePoly('F:/chinaprovinceborderdata_tar_gz/bou2_4p.shp') #1 to 925 个多边形
+plot(x)
+plot(x,col=gray(924:0/924))
+x[[2]]
+```
+
+
+
+
 
