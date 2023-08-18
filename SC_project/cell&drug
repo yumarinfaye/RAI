@@ -112,7 +112,7 @@ fDNA <- fDNA[,Vartype:=fcase(Vartype %in% c("Loss","Deletion","LOF"),"LOF",
 fDNA1 <- fDNA[,Vartype:=fcase(Vartype %in% c("CHA","LOF"),"DF",
                              Vartype %in% c("AMP","WT"),"WT")]
 
-
+#https://www.bioinfo-scrounger.com/archives/Co-mutation-and-exclusion-analysis-in-R/
 
 
 
