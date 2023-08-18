@@ -1,0 +1,121 @@
+
+#common packages
+
+library(readxl)
+library(data.table)
+library(reshape2)
+library(readr)
+
+
+# 01 annotation  data from cell model passport（https://cellmodelpassports.sanger.ac.uk/downloads）
+# A list of all models in the Cell Model Passports with their annotation including tissue, cancer type and identifiers.
+icell <- read.csv("F:/gpttest/input/model_list_20230801.csv")
+setDT(icell)
+head(icell)
+#Contains the datasets available for each model.
+xcell <- read.csv("F:/gpttest/input/model_dataset_availability_20230306.csv")
+setDT(xcell)
+head(xcell)
+#GDSC Growth Estimate
+gcell <- read.csv("F:/gpttest/input/growth_rate_20220907.csv")
+setDT(gcell)
+head(gcell)
+
+# A list of all genes used in the Cell Model Passports, with HUGO, Ensembl, Entrez and Refseq annotation.
+igene <- read.csv("F:/gpttest/input/gene_identifiers_20191101.csv")
+setDT(igene)
+head(igene)
+# The cancer driver gene list used by the Cell Model Passports.
+igene <- read.csv("F:/gpttest/input/driver_genes_20221018.csv")
+setDT(igene)
+head(igene)
+
+# The cancer driver gene list used by the Cell Model Passports.
+xgene <- read.csv("F:/gpttest/input/driver_mutations_20221208.csv")
+setDT(xgene)
+head(xgene)
+
+# 02  GDSC2 Drug & celline from GDSC （https://www.cancerrxgene.org/downloads/bulk_download）
+cellic50 <- as.data.table(read_xlsx("F:/gpttest/input/GDSC2_fitted_dose_response_24Jul22.xlsx"))
+# LN_IC50 means Natural log of the fitted IC50 To convert to micromolar take the exponent of this value, i.e.exp(IC50_nat_log)
+# Z_SCORE means Z score of the LN_IC50 ( x ) comparing it to the mean ( μ )and standard deviation ( σ ) of the LN_IC50 values for the drug in question over all cell lines treated.
+# Z_SCORE是对某一原始分值进行转换，变成的一个标准分值，该标准分值可使得原来无法比较的数值变得可比。Z 分数的符号（+ 或 - ）表示分数是高于 (+) 还是低于 ( - ) 平均值。
+# RMSE Root Mean Squared Error, a measurement of how well the modelled curve fits the data points. Curves with RMSE > 0.3 are excluded prior to release as part of quality control.
+# AUC Area Under the Curve for the fitted model. Presented as a fraction of the total area between the highest and lowest screening concentration.
+
+# 03 cell line mutation & cnv & fusion &xepression from cell model passport（https://cellmodelpassports.sanger.ac.uk/downloads）
+#A list of all mutations present in all sequenced models.
+DNAwes <- read.csv("F:/gpttest/input/mutations_all_20230202.csv")
+setDT(DNAwes)
+head(DNAwes)
+#Total copy number and categorical CNA calls derived from WES data processed through PureCN.
+cnvwes <- read.csv("F:/gpttest/input/WES_pureCN_CNV_genes_20221213.csv")
+setDT(cnvwes)
+head(cnvwes)
+#Fusions predicted from RNA-Seq data.
+rnafusion <- read.csv("F:/gpttest/input/fusions_all_20230725.csv")
+setDT(rnafusion)
+head(rnafusion)
+#Read counts, TPM & FPKM-values for all sequenced models including cell lines and organoids.
+rnaexpression <- read.csv("F:/gpttest/input/rnaseq_fpkm_20220624.csv")
+setDT(rnaexpression)
+
+# Protein intensity values acquired using data-independent acquisition mass spectrometry (DIA-MS).
+proexpression <- read.csv("F:/gpttest/input/Protein_matrix_averaged_zscore_20221214.tsv")
+setDT(proexpression)
+
+# save.image("primarydata.r")
+load("primarydata.r")
+# 04 clean data
+length(unique(xcell[(CNV.Sanger.Cell.Lines..WES.=="True") 
+                    &(Mutation.Broad.Cell.Lines..WES.=="True"|Mutation.Sanger.Cell.Lines..WES.=="True")]$model_id))
+
+fcellic50 <- cellic50[DRUG_NAME=="Paclitaxel"][CELL_LINE_NAME %in% xcell[(CNV.Sanger.Organoid..WGS.=="True"|CNV.Sanger.Cell.Lines..WES.=="True"|CNV.Sanger.Organoid..WGS.=="True") 
+                                                                         &(Mutation.Broad.Cell.Lines..WES.=="True"|Mutation.Sanger.Cell.Lines..WES.=="True")]$model_name]
+table(fcellic50$TCGA_DESC)
+gdsc01 <- fcellic50[TCGA_DESC %in% c("LUAD")]
+# IC50 to data is clean
+
+# gene alteration grouped into gene+ Vartype (LOF CHA WT AMP)
+fDNAwes <- DNAwes
+head(fDNAwes)
+unique(DNAwes[,effect])
+unique(fDNAwes[,effect])
+fDNAwes <- fDNAwes[,Vartype:=fcase(grepl("nonsense|silent|start_lost",effect),"LOF",
+                                   grepl("missense|frameshift|splice|stop_lost|inframe|cds_disrupted|:protein_coding",effect),"CHA",
+                                   !grepl("missense|frameshift|splice|nonsense|stop_lost|silent|start_lost|inframe|cds_disrupted|:protein_coding",effect),"WT")]
+fDNAwes <- unique(fDNAwes[,.(model_id,model_name,gene_id,cancer_driver,gene_symbol,Vartype)])
+length(unique(fDNAwes$model_id))
+# unique(fDNAwes[Vartype %in% c("LOF","CHA")][,N:=.N*100/1435,by=gene_id][order(-N)][cancer_driver %in% "True"][]$gene_symbol)[1:100]
+
+fcnvwes <- cnvwes[loh]
+fcnvwes <- fcnvwes[,.(model_id,model_name,gene_id,cancer_driver,symbol,cn_category)]
+head(fcnvwes)
+
+
+# frnafusion <- rnafusion
+# head(rnafusion)
+# table(rnafusion[,in_frame])
+# frnafusion <- frnafusion[model_name %in% gdsc01$CELL_LINE_NAME]
+
+# bind all DNA variants
+head(fcnvwes)
+head(fDNAwes)
+colnames(fcnvwes) <- colnames(fDNAwes)
+fDNA <-  rbind(fDNAwes,fcnvwes)
+fDNA <- fDNA[model_name %in% gdsc01$CELL_LINE_NAME]
+fDNA <- fDNA[,Vartype:=fcase(Vartype %in% c("Loss","Deletion","LOF"),"LOF",
+                             Vartype %in% c("Amplification","Gain"),"AMP",
+                             Vartype %in% c("CHA"),"CHA",
+                             Vartype %in% c("Neutral","WT"),"WT")]
+
+fDNA1 <- fDNA[,Vartype:=fcase(Vartype %in% c("CHA","LOF"),"DF",
+                             Vartype %in% c("AMP","WT"),"WT")]
+
+
+
+
+
+
+
+
