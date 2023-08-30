@@ -1,11 +1,7 @@
-
-#common packages
-
 library(readxl)
 library(data.table)
 library(reshape2)
 library(readr)
-
 
 # 01 annotation  data from cell model passport（https://cellmodelpassports.sanger.ac.uk/downloads）
 # A list of all models in the Cell Model Passports with their annotation including tissue, cancer type and identifiers.
@@ -35,6 +31,9 @@ xgene <- read.csv("F:/gpttest/input/driver_mutations_20221208.csv")
 setDT(xgene)
 head(xgene)
 
+ygeme <-  read.csv("F:/gpttest/input/Human_SR.csv",)
+setDT(ygeme)
+head(ygeme)
 # 02  GDSC2 Drug & celline from GDSC （https://www.cancerrxgene.org/downloads/bulk_download）
 cellic50 <- as.data.table(read_xlsx("F:/gpttest/input/GDSC2_fitted_dose_response_24Jul22.xlsx"))
 # LN_IC50 means Natural log of the fitted IC50 To convert to micromolar take the exponent of this value, i.e.exp(IC50_nat_log)
@@ -64,8 +63,9 @@ setDT(rnaexpression)
 proexpression <- read.csv("F:/gpttest/input/Protein_matrix_averaged_zscore_20221214.tsv")
 setDT(proexpression)
 
-# save.image("primarydata.r")
-load("primarydata.r")
+
+# save.image("primarydata.rdata")
+# load("primarydata.rdata")
 # 04 clean data
 length(unique(xcell[(CNV.Sanger.Cell.Lines..WES.=="True") 
                     &(Mutation.Broad.Cell.Lines..WES.=="True"|Mutation.Sanger.Cell.Lines..WES.=="True")]$model_id))
@@ -88,7 +88,7 @@ fDNAwes <- unique(fDNAwes[,.(model_id,model_name,gene_id,cancer_driver,gene_symb
 length(unique(fDNAwes$model_id))
 # unique(fDNAwes[Vartype %in% c("LOF","CHA")][,N:=.N*100/1435,by=gene_id][order(-N)][cancer_driver %in% "True"][]$gene_symbol)[1:100]
 
-fcnvwes <- cnvwes[loh]
+fcnvwes <- cnvwes
 fcnvwes <- fcnvwes[,.(model_id,model_name,gene_id,cancer_driver,symbol,cn_category)]
 head(fcnvwes)
 
@@ -103,19 +103,66 @@ head(fcnvwes)
 head(fDNAwes)
 colnames(fcnvwes) <- colnames(fDNAwes)
 fDNA <-  rbind(fDNAwes,fcnvwes)
+length(setdiff(gdsc01$CELL_LINE_NAME,fDNA1$model_name))
 fDNA <- fDNA[model_name %in% gdsc01$CELL_LINE_NAME]
 fDNA <- fDNA[,Vartype:=fcase(Vartype %in% c("Loss","Deletion","LOF"),"LOF",
                              Vartype %in% c("Amplification","Gain"),"AMP",
                              Vartype %in% c("CHA"),"CHA",
                              Vartype %in% c("Neutral","WT"),"WT")]
+length(intersect(fDNA[Vartype=="LOF"]$gene_symbol,c(ygeme$n2.name,ygeme$`锘縩1.name`)))
+ygemec <- ygeme[`锘縩1.name` %in% fDNA[Vartype=="LOF"][,.N,by=gene_symbol][order(-N)][1:200]$gene_symbol|
+                  n2.name %in% fDNA[Vartype=="LOF"][,.N,by=gene_symbol][order(-N)][1:200]$gene_symbol][order(-as.numeric(r.statistic_score))]
+#ALK CDKN2A
+fDNA1 <- fDNA[,Vartype:=fcase(Vartype %in% c("CHA","LOF"),1,
+                             Vartype %in% c("AMP","WT"),0)]
+# save.image("Paclitaxel-LUAD.rdata")
+# load("Paclitaxel-LUAD.rdata")
+length(unique(fDNA1$gene_symbol))
+fDNA1[Vartype==1&cancer_driver=="True",.N,by=gene_symbol][order(-N)][,.N]
 
-fDNA1 <- fDNA[,Vartype:=fcase(Vartype %in% c("CHA","LOF"),"DF",
-                             Vartype %in% c("AMP","WT"),"WT")]
+fDNA1x <- fDNA1[gene_symbol %in% fDNA1[Vartype=="1"&cancer_driver=="True",.N,by=gene_symbol][order(-N)][1:20]$gene_symbol][Vartype==1]
+# library(bigstatsr)
+# mat <- FBM(5e2, 10e2, backingfile = "test1")$save()
+matfDNA1x <- dcast(unique(fDNA1x[,.(model_name,gene_symbol,Vartype)]),model_name~gene_symbol,value.var = "Vartype")
 
+# matfDNA1x <- matfDNA1x[,-1]
+# library(ggplot2)
+# library(GGally)  
+# create pairs plot
+# ggpairs(matfDNA1x)
 
+matfDNA1x <- as.data.frame(matfDNA1x)
+matfDNA1x[is.na(matfDNA1x)] <- 0
+ns <- colnames(matfDNA1x)
 
+matfDNA1y <- pmap_dbl(expand.grid(ns, ns), ~ sum(matfDNA1x[..1] ==1 & matfDNA1x[..2] ==1)) %>% 
+  matrix(ncol = ncol(matfDNA1x), byrow = TRUE, dimnames = list(ns, ns))
 
+# demo 生成matrix
+# library(tidyverse)
+# df = tibble(
+#   a = c("on", "on", "on"), 
+#   b = c("on", "on", "off"), 
+#   c = c("off", "off", "off")
+# )
+# df
+# df <- as.data.frame(df)
+# ns = names(df)
+# pmap_dbl(expand.grid(ns, ns), ~ sum(df[..1] == "on" & df[..2] == "on")) %>% 
+#   matrix(ncol = ncol(df), byrow = TRUE, dimnames = list(ns, ns))
 
+# Discrete Independence Statistic Controlling for Observations with Varying Event Rates (DISCOVER), a novel test that is more sensitive than other methods and controls its false positive rate.
+# options(repos=c(getOption("repos"), "https://ccb.nki.nl/software/discover/repos/r"))
+# install.packages("discover")
 
+matfDNA2x <- dcast(unique(fDNA1[Vartype==1][,.(model_name,gene_symbol,Vartype)]),gene_symbol ~model_name,value.var = "Vartype")
 
+row.names(matfDNA2x) <- matfDNA2x[,1]
 
+matfDNA2x <- matfDNA2x[,-1]
+matfDNA2x[is.na(matfDNA2x)] <- 0
+
+library(discover)
+events <- discover.matrix(matfDNA2x)
+genes <- fDNA1[Vartype=="1"&cancer_driver=="True",.N,by=gene_symbol][order(-N)][50:100]$gene_symbol
+result.mutex <- pairwise.discover.test(events[genes,])
