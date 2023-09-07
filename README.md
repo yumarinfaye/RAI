@@ -3,6 +3,8 @@ RWS临床-分子数据分析师养学习和工作总结
 ## Chapter1 好用的R包及其示例
 ### 1-1 数据处理相关
 ### 1-2 临床统计必学
+https://learningstatisticswithr.com/lsr-0.6.pdf
+https://learningstatisticswithr.com/
 part1 生存分析 Kaplan-Meier, Cox, Frailty Models, Accelerated Failure Time Models, Transformation Models
 part2 纵向数据分析 Random Effects Models, Marginal Models
 part3 临床实验设计 主要研究在随机化实验中，如何在保证统计功效的条件下，尽可能让患者接受新药治疗（Intention to Treat）进行实验设计，这方面较新的理论是Alpha+ Spending Functions.
@@ -25,4 +27,5 @@ part4 统计遗传学 Mont Carlo
 隐马尔可夫模型 (Hidden Markov Model，HMM)![image](https://github.com/yumarinfaye/RAI/assets/43257633/b8601a61-1c79-4d0f-9255-3dabcaad3c3f)
 
 ### 1-4 生信数据分析相关
+
 ## Chapter2 完整的项目
