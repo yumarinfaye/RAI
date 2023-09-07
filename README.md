@@ -5,6 +5,7 @@ RWS临床-分子数据分析师养学习和工作总结
 ### 1-2 临床统计必学
 https://learningstatisticswithr.com/lsr-0.6.pdf
 https://learningstatisticswithr.com/
+https://christophm.github.io/interpretable-ml-book/
 part1 生存分析 Kaplan-Meier, Cox, Frailty Models, Accelerated Failure Time Models, Transformation Models
 part2 纵向数据分析 Random Effects Models, Marginal Models
 part3 临床实验设计 主要研究在随机化实验中，如何在保证统计功效的条件下，尽可能让患者接受新药治疗（Intention to Treat）进行实验设计，这方面较新的理论是Alpha+ Spending Functions.
