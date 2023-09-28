@@ -1156,6 +1156,23 @@ plot(x,col=gray(924:0/924))
 x[[2]]
 ```
 
+```{r]
+require(ggplot2);require(ggimage);require(yyplot)
+ggqrcode("https://mp.weixin.qq.com/s/TMmsOsEn0wV9yXKOLma3Rw")
+ggqrcode("I love you")
+d <- data.frame(x=1, y=1,
+    img="http://kemono-friends.jp/wp-content/themes/kemono-friends/assets/zoo/img/detail/001/chara.png")
+p <- ggplot(d, aes(x,y)) + geom_image(aes(image=img), size=Inf) + theme_void()
+
+p2 <- ggqrcode("http://mp.weixin.qq.com/s/oLgpTGdQgcka-OD757_3lA", "blue", alpha=.8)
+p + geom_subview(p2, width=Inf, height=Inf, x=1, y=1)
+
+pg <- ggqrcode("https://mp.weixin.qq.com/s/TMmsOsEn0wV9yXKOLma3Rw")
+d <- data.frame(x=15, y=15,    
+    img="https://guangchuangyu.github.io/blog_images/gc.png")
+pg + geom_image(aes(x,y, image=img), data=d, size=.2)
+```
+
 
 
 
